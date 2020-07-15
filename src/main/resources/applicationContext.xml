@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/util"
+       xmlns:contex="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+   <contex:component-scan base-package="com.xinlong">
+       <contex:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+   </contex:component-scan>
+    <contex:property-placeholder location="classpath:db.properties"></contex:property-placeholder>
+    <bean class="com.mchange.v2.c3p0.ComboPooledDataSource" id="dataSource">
+        <property name="jdbcUrl" value="${jdbc.url}"></property>
+        <property name="driverClass" value="${jdbc.driver}"></property>
+        <property name="user" value="${jdbc.username}"></property>
+        <property name="password" value="${jdbc.password}"></property>
+    </bean>
+
+    <bean class="com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean" id="sqlSessionFactory">
+        <property name="configLocation" value="classpath:mybatis-config.xml"></property>
+        <property name="dataSource" ref="dataSource"></property>
+        <property name="typeAliasesPackage" value="com.xinlong.bean"></property>
+        <property name="globalConfig" ref="globalConfig"></property>
+
+
+        <property name="plugins">
+            <list>
+                <bean class="com.github.pagehelper.PageInterceptor">
+                <property name="properties">
+                    <value>
+                        reasonable=true
+                    </value>
+                </property>
+                </bean>
+                    <!--乐观锁-->         
+                <bean class="com.baomidou.mybatisplus.extension.plugins.OptimisticLockerInterceptor" id="lockerInterceptor"></bean>
+            </list>
+
+        </property>
+
+
+    </bean>
+
+    <bean class="com.baomidou.mybatisplus.core.config.GlobalConfig" id="globalConfig">
+        <property name="dbConfig" ref="dbConfig"></property>
+
+        <property name="metaObjectHandler" ref="metaObjectHandler"></property>
+
+    </bean>
+    <bean id="dbConfig" class="com.baomidou.mybatisplus.core.config.GlobalConfig.DbConfig">
+        <property name="idType" value="AUTO"></property>
+        <property name="tableUnderline" value="true"></property>
+    </bean>
+   <!--自动填充-->
+    <bean class="com.xinlong.common.util.MyMetaObjectHandler" id="metaObjectHandler"></bean>
+
+
+
+
+
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+        <property name="basePackage" value="com.xinlong.dao"></property>
+    </bean>
+
+    <!--事务管理-->
+    <bean class="org.springframework.jdbc.datasource.DataSourceTransactionManager" id="dataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"></property>
+    </bean>
+    <aop:config>
+        <!--切入点表达式-->
+        <aop:pointcut id="txPoint" expression="execution(* com.xinlong.service..*(..))"/>
+        <!--配置事务增强-->
+        <aop:advisor advice-ref="txAdvice" pointcut-ref="txPoint"></aop:advisor>
+    </aop:config>
+    <!--配置事务增强-->
+    <tx:advice id="txAdvice" transaction-manager="dataSourceTransactionManager">
+    <tx:attributes>
+        <tx:method name="*"/>
+        <tx:method name="get*" read-only="true"/>
+        <tx:method name="addOrderInfo" propagation="NESTED"/>
+    </tx:attributes>
+
+    </tx:advice>
+</beans>
+
+
+
+
+
+
+
+
+
+
+
